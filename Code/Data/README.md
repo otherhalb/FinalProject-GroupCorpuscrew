@@ -15,5 +15,5 @@ Original dataset:
 
 ## Notes [[[[should be edited]]]]
 - Removed missing values and outliers.
-- Standardized numeric features using z-score normalization.
+- Standardized numeric features using blah blah blah....
 
