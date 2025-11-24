@@ -4,7 +4,7 @@
 #It processes 32,910 user reviews collected in **July 2023**, coinciding with Threads’ public launch, to study platform reception and user opinions.
 
 
-## 📑 Table of Contents
+## Table of Contents
 #1. **Import Libraries**
 #2. **Load Dataset**
 #3. **Exploratory Data Analysis (EDA)**
