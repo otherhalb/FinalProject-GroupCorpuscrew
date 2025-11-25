@@ -3,7 +3,6 @@
 #This script analyzes user sentiment toward **Threads (Instagram App)** using Natural Language Processing (NLP) techniques.  
 #It processes 32,910 user reviews collected in **July 2023**, coinciding with Threads’ public launch, to study platform reception and user opinions.
 
-
 ## Table of Contents
 #1. **Import Libraries**
 #2. **Load Dataset**
