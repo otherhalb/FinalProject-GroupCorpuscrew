@@ -237,7 +237,7 @@ print("Removed:", before - after)
 
 
 # ===========================================
-# 4. Sentiment Analysis (VADER) - using Uncleaned Original Text
+# 8. Sentiment Analysis (VADER) - using Uncleaned Original Text
 # ===========================================
 # Initialize analyzer
 analyzer = SentimentIntensityAnalyzer()
@@ -273,10 +273,3 @@ plt.ylabel("Count")
 plt.tight_layout()
 plt.show()
 
-<<<<<<< Updated upstream
-# ===========================================
-# 5. 
-# ===========================================
-# %%
-=======
->>>>>>> Stashed changes
