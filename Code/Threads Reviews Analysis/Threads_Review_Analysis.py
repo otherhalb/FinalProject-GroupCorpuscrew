@@ -273,7 +273,10 @@ plt.ylabel("Count")
 plt.tight_layout()
 plt.show()
 
+<<<<<<< Updated upstream
 # ===========================================
 # 5. 
 # ===========================================
 # %%
+=======
+>>>>>>> Stashed changes
