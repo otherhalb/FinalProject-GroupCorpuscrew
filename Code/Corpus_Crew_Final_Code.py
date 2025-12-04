@@ -1571,3 +1571,188 @@ print(classification_report(
 # These results show that DistilBERT captures the linguistic nuances of Twitter text extremely well, even when trained on weakly labeled sentiment data. Compared to traditional machine-learning models and lexicon-based methods, the transformer model demonstrates far more robust generalization, stronger class balance, and improved handling of subtle or ambiguous sentiment expressions.
 # Overall, DistilBERT provides a highly reliable and accurate approach for large-scale Twitter sentiment analysis.
 # ------------------------------------------------------------
+
+# --------------------------------------------------------------------
+# --------- DATA CLEANING PIPELINE 2: TOPIC MODELLING PREPARATION -----------
+# --------------------------------------------------------------------
+negations = {"no", "not", "nor", "dont", "can't", "cannot", "never"}
+stop_words = stop_words - negations
+
+# App-specific words to remove
+custom_stopwords_tm = set([
+    "app", "apps", "application", "applications",
+    "experience", "account", 
+])
+
+# ============================
+#  Cleaning Function
+# ============================
+def clean_text_for_tm(text):
+    tokens = simple_preprocess(text, deacc=True)
+    return tokens
+
+# ============================
+#  Bigram Builder
+# ============================
+def create_bigrams(texts):
+    bigram = Phrases(texts, min_count=10, threshold=10)
+    bigram_mod = Phraser(bigram)
+    return [bigram_mod[doc] for doc in texts]
+
+# ============================
+# Prepare Dataset for Topic Modeling
+# ============================
+def prepare_tm_texts(df):
+    docs = df["review_cleaned"].apply(clean_text_for_tm).tolist()
+    docs_bigrams = create_bigrams(docs)
+    return docs_bigrams
+
+# ------- TOPIC MODELLING 1: LDA -----------
+def train_lda_model(docs_bigrams, num_topics=5):
+
+    dictionary = Dictionary(docs_bigrams)
+    dictionary.filter_extremes(no_below=10, no_above=0.5)
+
+    corpus = [dictionary.doc2bow(doc) for doc in docs_bigrams]
+
+    lda_model = LdaModel(
+        corpus=corpus,
+        id2word=dictionary,
+        num_topics=num_topics,
+        random_state=42,
+        chunksize=2000,
+        passes=10,
+        alpha='auto'
+    )
+
+    coherence_model = CoherenceModel(
+        model=lda_model,
+        texts=docs_bigrams,
+        dictionary=dictionary,
+        coherence='c_v'
+    )
+
+    coherence_score = coherence_model.get_coherence()
+
+    return lda_model, corpus, dictionary, coherence_score
+
+
+
+def run_lda(docs_df):
+    docs_bigrams = prepare_tm_texts(docs_df)
+
+    topic_range = range(3, 7)
+    coherence_scores = {}
+
+    for k in topic_range:
+        lda_model, corpus, dictionary, coherence = train_lda_model(docs_bigrams, num_topics=k)
+        coherence_scores[k] = coherence
+        print(f"k={k} Coherence={coherence:.4f}")
+
+    best_k = max(coherence_scores, key=coherence_scores.get)
+    print("\nBest number of topics =", best_k)
+
+    final_lda, corpus, dictionary, coherence = train_lda_model(docs_bigrams, num_topics=best_k)
+
+    print("Final Coherence Score:", coherence)
+
+    topics = final_lda.show_topics(num_topics=-1, num_words=15, formatted=False)
+
+    for topic_id, words in topics:
+        print(f"TOPIC {topic_id+1}:")
+        top_terms = [w for w, weight in words]
+        print(", ".join(top_terms))
+        print()
+
+    return final_lda    # 
+
+
+print("\n===== POSITIVE TOPICS =====")
+def run_lda_block(df_input):
+    print("\n===== RUNNING LDA BLOCK =====")
+    return run_lda(df_input)
+
+
+# Visualization function for LDA topics
+import matplotlib.pyplot as plt
+import math
+
+# ---------------------------------------------------------
+# 4×4 Grid Visualization for One Sentiment
+# ---------------------------------------------------------
+def visualize_lda_grid(lda_model, sentiment_label, num_words=10):
+
+    topics = lda_model.show_topics(num_topics=-1, num_words=num_words, formatted=False)
+    num_topics = len(topics)
+
+    print(f"\n--- VISUALIZING {num_topics} TOPICS FOR {sentiment_label.upper()} ---")
+
+    # Grid size (max 4x4)
+    rows = 4
+    cols = 4
+    total_plots = rows * cols
+
+    fig, axes = plt.subplots(rows, cols, figsize=(18, 18))
+    axes = axes.flatten()
+
+    for i, ax in enumerate(axes):
+
+        if i < num_topics:
+            topic_id, topic_data = topics[i]
+            words = [w for w, wt in topic_data]
+            weights = [wt for w, wt in topic_data]
+
+            ax.barh(words[::-1], weights[::-1])
+            ax.set_title(f"Topic {topic_id+1}")
+            ax.tick_params(labelsize=9)
+        else:
+            ax.axis("off")   # hide empty grid cells
+
+    plt.suptitle(f"{sentiment_label.upper()} — LDA Topics", fontsize=20)
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+    plt.show()
+
+# Wrapper for convenience
+def visualize_lda_block(lda_model, sentiment_label):
+    visualize_lda_grid(lda_model, sentiment_label)
+
+
+# ---------------------------------------------------------
+# --------- THREADS LDA TOPIC MODELING ---------
+# ---------------------------------------------------------
+print("\n===== THREADS POSITIVE TOPICS =====")
+lda_pos_threads = run_lda_block(threads_pos)
+print("\n===== THREADS NEUTRAL TOPICS =====")
+lda_neu_threads = run_lda_block(threads_neu)
+print("\n===== THREADS NEGATIVE TOPICS =====")
+lda_neg_threads = run_lda_block(threads_neg)
+
+visualize_lda_block(lda_pos_threads, "Threads Positive")
+visualize_lda_block(lda_neu_threads, "Threads Neutral")
+visualize_lda_block(lda_neg_threads, "Threads Negative")
+
+# Sumarry of Findings for Threads LDA
+# - Positive reviews: Users express generally positive impressions and note that the app works well, while also offering polite suggestions for additional features.
+# - Neutral reviews: Comments focus on platform comparisons, technical observations, and practical usage notes without strong emotional tone.
+# - Negative reviews: Users report dissatisfaction related to crashes, missing features, feed issues, and comparisons where Threads feels weaker than alternatives.
+
+# ---------------------------------------------------------
+# --------- TWITTER LDA TOPIC MODELING ---------
+# ---------------------------------------------------------
+print("\n===== TWITTER POSITIVE TOPICS =====")
+lda_pos_twitter = run_lda_block(twitter_pos)
+
+print("\n===== TWITTER NEUTRAL TOPICS =====")
+lda_neu_twitter = run_lda_block(twitter_neu)
+
+print("\n===== TWITTER NEGATIVE TOPICS =====")
+lda_neg_twitter = run_lda_block(twitter_neg)
+
+visualize_lda_block(lda_pos_twitter, "Twitter Positive")
+visualize_lda_block(lda_neu_twitter, "Twitter Neutral")
+visualize_lda_block(lda_neg_twitter, "Twitter Negative")
+
+# Summary of Findings for Twitter LDA
+# - Positive reviews: Users express favorable impressions, highlight improvements, and appreciate specific features or platform behavior.
+# - Neutral reviews: Comments focus on platform changes, updates, and general functionality, often mentioning rebranding or feature adjustments without strong emotion.
+# - Negative reviews: Users express dissatisfaction with updates, rebranding decisions, and limits, frequently criticizing how recent changes have affected the platform experience.
