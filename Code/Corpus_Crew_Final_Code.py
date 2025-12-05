@@ -1756,3 +1756,205 @@ visualize_lda_block(lda_neg_twitter, "Twitter Negative")
 # - Positive reviews: Users express favorable impressions, highlight improvements, and appreciate specific features or platform behavior.
 # - Neutral reviews: Comments focus on platform changes, updates, and general functionality, often mentioning rebranding or feature adjustments without strong emotion.
 # - Negative reviews: Users express dissatisfaction with updates, rebranding decisions, and limits, frequently criticizing how recent changes have affected the platform experience.
+
+
+
+# --------------------------------------------------------------------
+# --------- TOPIC MODELLING PREPARATION - NMF -----------
+# --------------------------------------------------------------------
+
+
+def run_nmf(docs_df):
+    docs_bigrams = prepare_tm_texts(docs_df)
+    docs_text = [" ".join(doc) for doc in docs_bigrams]
+
+    tfidf_vectorizer = TfidfVectorizer(
+        max_df=0.95,
+        min_df=10,
+        ngram_range=(1, 1),
+    )
+
+    tfidf = tfidf_vectorizer.fit_transform(docs_text)
+    feature_names = tfidf_vectorizer.get_feature_names_out()
+
+    dictionary = Dictionary(docs_bigrams)
+    dictionary.filter_extremes(no_below=10, no_above=0.5)
+
+    topic_range = range(3, 10)
+    coherence_scores = {}
+
+    for k in topic_range:
+        nmf_model = NMF(
+            n_components=k,
+            random_state=42,
+            init="nndsvda",
+            max_iter=2000
+        )
+        
+        W = nmf_model.fit_transform(tfidf)
+        H = nmf_model.components_
+
+        top_words = []
+        for topic in H:
+            idxs = topic.argsort()[-20:]
+            top_words.append([feature_names[i] for i in idxs])
+
+        coherence_model = CoherenceModel(
+            topics=top_words,
+            texts=docs_bigrams,
+            dictionary=dictionary,
+            coherence='c_v'
+        )
+
+        coherence = coherence_model.get_coherence()
+        coherence_scores[k] = coherence
+        print(f"k={k} Coherence={coherence:.4f}")
+
+    best_k = max(coherence_scores, key=coherence_scores.get)
+    print("\nBest number of NMF topics =", best_k)
+
+    final_nmf = NMF(
+        n_components=best_k,
+        random_state=42,
+        init="nndsvda",
+        max_iter=400
+    )
+
+    W_final = final_nmf.fit_transform(tfidf)
+    H_final = final_nmf.components_
+
+    print("\n--- FINAL NMF TOPIC WORDS ---\n")
+    for idx, topic in enumerate(H_final):
+        indices = topic.argsort()[-15:]
+        words = [feature_names[i] for i in indices]
+        print(f"TOPIC {idx+1}: {', '.join(words)}")
+
+    return final_nmf, feature_names
+
+
+
+def run_nmf_block(df_input):
+    print("\n===== RUNNING NMF BLOCK =====")
+    return run_nmf(df_input)
+
+
+#Visulaizing the Topics in pos, neu, neg (NMF)
+
+# --------------------------------------------------------------------
+# VISUALIZATION - LDA
+# --------------------------------------------------------------------
+
+
+def plot_topic(words, weights, title):
+    plt.figure(figsize=(10, 5))
+    plt.barh(words[::-1], weights[::-1], color='royalblue')
+    plt.title(title)
+    plt.xlabel("Topic Weight")
+    plt.tight_layout()
+    plt.show()
+
+def visualize_nmf_topics(nmf_model, feature_names, sentiment_label):
+    print(f"\n--- VISUALIZING NMF TOPICS: {sentiment_label.upper()} ---")
+    
+    H = nmf_model.components_
+
+    for idx, topic in enumerate(H):
+        top_idx = topic.argsort()[-15:][::-1]
+        words = [feature_names[i] for i in top_idx]
+        weights = [topic[i] for i in top_idx]
+
+        title = f"{sentiment_label.upper()} - NMF Topic {idx+1}"
+        plot_topic(words, weights, title)
+
+def visualize_nmf_block(nmf_model, feature_names, sentiment_label):
+    visualize_nmf_topics(nmf_model, feature_names, sentiment_label)
+
+# --------------------------------------------------------------------
+# NMF THREADS ANALYSIS 
+# --------------------------------------------------------------------
+
+print("\n===== NMF THREADS POSITIVE =====")
+nmf_pos, pos_feats = run_nmf_block(threads_pos)
+
+print("\n===== NMF THREADS NEUTRAL =====")
+nmf_neu, neu_feats = run_nmf_block(threads_neu)
+
+print("\n===== NMF THREADS NEGATIVE =====")
+nmf_neg, neg_feats = run_nmf_block(threads_neg)
+
+visualize_nmf_block(nmf_pos, pos_feats, "Threads Positive")
+visualize_nmf_block(nmf_neu, neu_feats, "Threads Neutral")
+visualize_nmf_block(nmf_neg, neg_feats, "Threads Negative")
+
+#Observations:
+# Positive Sentiment (Best k = 6) :NMF produced six meaningful topics reflecting various aspects 
+# of positive user experience.
+# General Impressions - new, use, feature, need
+# Interface & Platform Notes - see, ui, platform
+# Competitor Comparisons - facebook, instagram, alternative
+# Meta Ecosystem Context - social, platform, world
+# Functionality Mentions - work, job, start, feature
+# Light Positive Reactions - cool, wow, amazing, love
+
+# Neutral Sentiment (Best k = 6): Neutral topics were clearer and more structured than LDA,
+#  with well-defined clusters.
+# Copying/Clone Commentary - cheap, clone, copied, twitter
+# Account & Login Activities - login, delete, create, sign
+# Competitor Mentions - mark, zuck, tweeter
+# Feed & Usage Observations - feed, see, post, work
+# Minor Technical Issues - glitching, bug, not_working
+# Routine App Interactions - write, review, comment, time
+
+# Negative Sentiment (Best k = 9): Because negative reviews mention diverse frustrations, 
+# NMF discovered nine separate issue clusters, reflecting greater complexity than LDA.
+# App Not Working - not_working, glitch, install, ui
+# UI & Privacy Concerns - screen, privacy, content
+# Missing Functions - post, see, need, delete
+# Strong Dissatisfaction - rubbish, pathetic, useless
+# Copying/Clone Complaints - copy, copying, cheap, copy_twitter
+# Design Issues - boring, nothing_new, poor
+# Feed/Discovery Problems - feed, trending, hashtags
+# Quality & Competitor Comparison - clone, fake, twitter
+# Technical Failures - crash, upload, picture, try
+
+
+# --------------------------------------------------------------------
+# NMF TWITTER ANALYSIS
+# --------------------------------------------------------------------
+
+
+print("\n===== NMF TWITTER POSITIVE =====")
+nmf_pos_tw, pos_feats_tw = run_nmf_block(twitter_pos)
+
+print("\n===== NMF TWITTER NEUTRAL =====")
+nmf_neu_tw, neu_feats_tw = run_nmf_block(twitter_neu)
+print("\n===== NMF TWITTER NEGATIVE =====")
+nmf_neg_tw, neg_feats_tw = run_nmf_block(twitter_neg)
+
+visualize_nmf_block(nmf_pos_tw, pos_feats_tw, "Twitter Positive")
+visualize_nmf_block(nmf_neu_tw, neu_feats_tw, "Twitter Neutral")
+visualize_nmf_block(nmf_neg_tw, neg_feats_tw, "Twitter Negative")
+
+#Observations:
+# Positive Sentiment (k ≈ 3) :
+# General Enjoyment — love, excellent, best_social
+# Feature Appreciation / Improvements — better, awesome, free_speech
+# Satisfaction with Updates — good, great, name, change, logo
+
+
+# Neutral Sentiment (k ≈ 6) :
+# Leadership & Feature Mentions — elon_musk, feature
+# Platform Behavior — ruined, platform, anymore
+# Tweet/Video/Limit Notes — tweet, limit, video
+# Rebranding Discussions — bird, back, rebranding
+# Update Notes — update, phone
+# Logo/Name Change — change, name, logo
+
+# Negative Sentiment (k ≈ 3) :
+# Update-Related Frustrations — no, worse, limit, post
+# Rebranding Disapproval — suck, name, logo, bird
+# Leadership Criticism — bad, elon, ruined, musk
+
+# NMF seems to have decent coherence for positive neutral and negative around 0.40 but 
+# it is significantly low than LDA and the insights found in LDA seem to be much better than NMF. 
+# Hence, LDA is the best choice for now.
