@@ -39,7 +39,11 @@ import numpy as np
 import torch
 # For Langdetect
 from langdetect import detect, LangDetectException, DetectorFactory
+import math
+import textwrap
 
+# ===== Code by Haeyeon Part 1 start ===== #
+# Set the seed to reproduce the same results
 DetectorFactory.seed = 42
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -642,8 +646,9 @@ for word, freq in freq_dist.most_common(20):
 # - Users comment heavily on updates, renaming (Twitter → X), UI changes, etc.
 # - Much more complaining, negativity
 # -----------------------------------------------------
+# ===== Code by Haeyeon Part 1 end ===== #
 
-
+# ===== Code by ????? Part 1 start ===== #
 # =============================================================
 # 3-1. SENTIMENT ANALYSIS : USING VADER + KNN FOR THREADS
 # =============================================================
@@ -930,8 +935,9 @@ print(classification_report(y_test, y_pred, digits=4))
 
 # Overall, these results show that a traditional machine-learning model like TF-IDF + Logistic Regression can still provide strong performance for social media sentiment classification. Despite being trained on weak (auto-generated) labels, the model captures meaningful textual patterns and offers more stable, consistent predictions than lexicon-based approaches such as VADER.
 # ------------------------------------------------------------
+# ===== Code by Snehitha Part ? end ===== #
 
-
+# ===== Code by Haeyeon Part 2 start ===== #
 # ------------------------------------------------------------
 # Model 2: Sentiment Classification using DistilBERT (Threads)
 # ------------------------------------------------------------
@@ -1004,7 +1010,9 @@ model = DistilBertForSequenceClassification.from_pretrained(
 # - Neutral: F1 = 0.77
 # - Positive: F1 = 0.93
 # ------------------------------------------------------------
+# ===== Code by Haeyeon Part 2 end ===== #
 
+# ===== Code by Rachana Part ? start ===== #
 # ------------------------------------------------------------
 # HYPERPARAMETER TUNING CODE FOR BERT
 # ------------------------------------------------------------
@@ -1050,7 +1058,7 @@ model = DistilBertForSequenceClassification.from_pretrained(
 # val_dataset = BERTDataset(val_enc, y_val)
 # test_dataset = BERTDataset(test_enc, y_test_bert)
 
-# # Now you have three datasets:
+# # three datasets:
 # # - train_dataset: for training
 # # - val_dataset: for hyperparameter tuning (use this in Optuna)
 # # - test_dataset: for final evaluation only
@@ -1134,7 +1142,9 @@ training_args = TrainingArguments(
     load_best_model_at_end=True,
     logging_steps = 50,
 )
+# ===== Code by Rachana Part ? end ===== #
 
+# ===== Code by Haeyeon Part 3 start ===== #
 trainer = Trainer(
     model=model,
     args=training_args,
@@ -1168,8 +1178,9 @@ print(classification_report(
 # These results demonstrate that pretrained transformer models can effectively capture nuanced linguistic cues even when trained on noisy, weakly labeled data.
 #Overall, DistilBERT provides a much more robust and reliable method for real-world social media sentiment analysis compared to lexicon-based or classical machine-learning baselines.
 # ------------------------------------------------------------
+# ===== Code by Haeyeon Part 3 end ===== #
 
-
+# ===== Code by ??? Part ? start ===== #
 # =============================================================
 # 3-2. SENTIMENT ANALYSIS : USING VADER + KNN FOR TWITTER
 # =============================================================
@@ -1479,7 +1490,9 @@ print(classification_report(y_test_t, y_pred_t, digits=4))
 #  media sentiment analysis. Despite relying on weak, auto-generated labels, the model successfully captures meaningful linguistic
 #  patterns in real-world Twitter text and significantly outperforms rule-based tools like VADER across all sentiment categories.
 # ------------------------------------------------------------
+# ===== Code by Snehitha Part ? end ===== #
 
+# ===== Code by Haeyeon Part 4 start ===== #
 # ------------------------------------------------------------
 # Model 2: Sentiment Classification using DistilBERT (Twitter)
 # ------------------------------------------------------------
@@ -1525,12 +1538,17 @@ model_tw = DistilBertForSequenceClassification.from_pretrained(
     num_labels=3
 )
 
+# ------------------------------------------------------------
+# Hyperparameter tuning:
+# - Initial learning_rate=1e-5 by Haeyeon
+# - Tuned learning_rate=2e-5 by Rachna
+# ------------------------------------------------------------
 training_args_tw = TrainingArguments(
     output_dir="./bert_results_twitter",
     eval_strategy="epoch", # evaluation_strategy="epoch",
     save_strategy="epoch",
     num_train_epochs=3,
-    learning_rate=2e-5,
+    learning_rate=2e-5, # Initial : 1e-5
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
     weight_decay=0.01,
@@ -1562,7 +1580,7 @@ print(classification_report(
 # ------------------------------------------------------------
 #[Summary]
 # Fine-tuning DistilBERT on the Twitter dataset led to a substantial improvement in sentiment classification performance.
-# The model achieved 93.06%(Previously 92.74%) accuracy and a macro F1-score of 0.93,surpassing the TF-IDF + Logistic Regression baseline (macro F1 ≈0.84).
+# The model achieved 93.06%(Previously 91.8%) accuracy and a macro F1-score of 0.93,surpassing the TF-IDF + Logistic Regression baseline (macro F1 ≈0.84).
 # Performance was consistently strong across all three sentiment classes:
 # - Negative: F1 = 0.93
 # - Neutral: F1 = 0.90
@@ -1571,7 +1589,9 @@ print(classification_report(
 # These results show that DistilBERT captures the linguistic nuances of Twitter text extremely well, even when trained on weakly labeled sentiment data. Compared to traditional machine-learning models and lexicon-based methods, the transformer model demonstrates far more robust generalization, stronger class balance, and improved handling of subtle or ambiguous sentiment expressions.
 # Overall, DistilBERT provides a highly reliable and accurate approach for large-scale Twitter sentiment analysis.
 # ------------------------------------------------------------
+# ===== Code by Haeyeon Part 4 end ===== #
 
+# ===== Code by ??? Part ? start ===== #
 # --------------------------------------------------------------------
 # --------- DATA CLEANING PIPELINE 2: TOPIC MODELLING PREPARATION -----------
 # --------------------------------------------------------------------
@@ -1958,3 +1978,245 @@ visualize_nmf_block(nmf_neg_tw, neg_feats_tw, "Twitter Negative")
 # NMF seems to have decent coherence for positive neutral and negative around 0.40 but 
 # it is significantly low than LDA and the insights found in LDA seem to be much better than NMF. 
 # Hence, LDA is the best choice for now.
+
+# ===== Code by ??? Part ? end ===== #
+
+# ===== Code by Haeyeon Part 5 start ===== #
+# --------------------------------------------------------------------
+# --------- TOPIC MODELLING PREPARATION - BERTopic -----------
+# --------------------------------------------------------------------
+
+# Prevent text truncation in DataFrame printing
+pd.set_option("display.max_colwidth", 200)
+pd.set_option("display.width", 80)
+
+# Shared embedding model
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# -----------------------------
+# Helper: Horizontal bar plot for single topic
+# -----------------------------
+def plot_topic(words, weights, title):
+    plt.figure(figsize=(10,5))
+    plt.barh(words[::-1], weights[::-1], color="royalblue")
+    plt.title(title)
+    plt.xlabel("Topic Weight")
+    plt.tight_layout()
+    plt.show()
+
+# -----------------------------
+# Helper: BERTopic summary
+# -----------------------------
+def inspect_topics(model, texts, group_name):
+    print(f"\n===== BERTOPIC SUMMARY ({group_name.upper()}) — 5 TOPICS =====")
+    #topic_info = model.get_topic_info()
+    topic_info = model.get_topic_info().copy()
+    topic_info["Representative_Docs"] = topic_info["Representative_Docs"].apply(
+        lambda docs: "\n".join(docs)
+    )
+    print(topic_info)
+
+    # Topic distribution barplot
+    plt.figure(figsize=(8,4))
+    sns.barplot(x="Topic", y="Count", data=topic_info[topic_info["Topic"] != -1])
+    plt.title(f"Topic Distribution ({group_name.capitalize()} Reviews)")
+    plt.tight_layout()
+    plt.show()
+
+    # Plot top words per topic
+    for tid in topic_info["Topic"]:
+        if tid == -1:
+            continue
+        words_scores = model.get_topic(tid)
+        words = [w for w, score in words_scores]
+        weights = [score for w, score in words_scores]
+        plot_topic(words, weights, title=f"{group_name.upper()} - BERTopic {tid}")
+
+    # Representative examples
+    print(f"\n--- REPRESENTATIVE EXAMPLES ({group_name}) ---")
+    repr_docs = model.get_representative_docs()
+    for tid, docs in repr_docs.items():
+        if tid == -1:
+            continue
+        print(f"\nTopic {tid} Examples:")
+        for d in docs[:3]:
+            print("-", d[:200], "...")
+
+# -----------------------------
+# Helper: compute BERTopic coherence
+# -----------------------------
+def get_bertopic_top_words(model, top_n=15):
+    topic_words = []
+    for t in model.get_topics().keys():
+        if t == -1:
+            continue
+        words = [w for w, _ in model.get_topic(t)[:top_n]]
+        topic_words.append(words)
+    return topic_words
+
+def tokenize_texts(texts):
+    return [t.split() for t in texts]
+
+def compute_bertopic_coherence(model, texts, top_n=15):
+    tokenized = tokenize_texts(texts)
+    word_lists = get_bertopic_top_words(model, top_n)
+    dictionary = Dictionary(tokenized)
+    cm = CoherenceModel(
+        topics=word_lists,
+        texts=tokenized,
+        dictionary=dictionary,
+        coherence="c_v"
+    )
+    return cm.get_coherence()
+
+# -----------------------------
+# BERTopic Pipeline
+#  - Run BERTopic for a given sentiment subset of a DataFrame.
+#  - Returns the fitted model, topics, probabilities, embeddings, and coherence score.
+# -----------------------------
+def run_bertopic_pipeline(df, sentiment_col="sentiment", review_col="review_description",
+                          sentiment_value=None, min_topic_size=20, reduce_to=5):
+
+    # Filter data
+    subset = df[df[sentiment_col] == sentiment_value].copy()
+
+    # Remove NaN values and convert to string
+    subset = subset[subset[review_col].notna()].copy()
+    subset[review_col] = subset[review_col].astype(str)
+    texts = subset[review_col].tolist()
+
+    texts = [t for t in texts if t.strip() != ""]
+
+    # Compute embeddings
+    embeddings = embedding_model.encode(texts, show_progress_bar=True)
+
+    # Fit BERTopic
+    model = BERTopic(
+        language="english",
+        umap_model=umap_model,
+        hdbscan_model=hdbscan_model,
+        min_topic_size=min_topic_size,
+        top_n_words=15,
+        calculate_probabilities=True,
+        verbose=False
+    )
+
+    topics, probs = model.fit_transform(texts, embeddings)
+
+    # Reduce topics
+    if reduce_to is not None:
+        model = model.reduce_topics(texts, nr_topics=reduce_to)
+        topics, probs = model.transform(texts, embeddings)
+
+    # Inspect topics
+    inspect_topics(model, texts, sentiment_value.capitalize())
+
+    # Compute coherence
+    coherence = compute_bertopic_coherence(model, texts)
+
+    print(f"{sentiment_value.capitalize()} BERTopic Coherence:", coherence)
+
+    return model, topics, probs, embeddings, coherence
+
+# --------------------------------------------------------------------
+# Helper: grouped plot
+# --------------------------------------------------------------------
+def plot_bertopic_topics_grouped(model, group_name="BERTopic Topics", top_n=15):
+    topics = model.get_topics()
+    topic_ids = [tid for tid in topics.keys() if tid != -1]
+
+    # Only 3 topics per row
+    cols = 3
+    rows = math.ceil(len(topic_ids) / cols)
+
+    fig, axes = plt.subplots(rows, cols, figsize=(18, 5 * rows))
+    axes = axes.flatten()
+
+    for i, tid in enumerate(topic_ids):
+        words_scores = topics[tid][:top_n]
+        words = [w for w, _ in words_scores]
+        weights = [s for _, s in words_scores]
+
+        sns.barplot(x=weights, y=words, ax=axes[i], color="royalblue")
+        axes[i].set_title(f"{group_name} — Topic {tid}")
+        axes[i].set_xlabel("Weight")
+        axes[i].set_ylabel("Word")
+
+    # Hide unused axes
+    for j in range(i + 1, len(axes)):
+        axes[j].axis("off")
+
+    plt.tight_layout()
+    plt.show()
+
+# --------------------------------------------------------------------
+# BERTopic Threads analysis
+# --------------------------------------------------------------------
+threads_pos_model, threads_pos_topics, threads_pos_probs, threads_pos_emb, threads_pos_coh = \
+    run_bertopic_pipeline(df_threads, sentiment_value="positive")
+
+threads_neu_model, threads_neu_topics, threads_neu_probs, threads_neu_emb, threads_neu_coh = \
+    run_bertopic_pipeline(df_threads, sentiment_value="neutral")
+
+threads_neg_model, threads_neg_topics, threads_neg_probs, threads_neg_emb, threads_neg_coh = \
+    run_bertopic_pipeline(df_threads, sentiment_value="negative")
+'''
+# For grouped plot
+plot_bertopic_topics_grouped(threads_pos_model, "Threads Positive")
+plot_bertopic_topics_grouped(threads_neu_model, "Threads Neutral")
+plot_bertopic_topics_grouped(threads_neg_model, "Threads Negative")
+'''
+# --------------------------------------------------------------------
+# Observations from Threads:
+# Threads Positive
+# - Users like the app’s vibe and easy interface.
+# - Many say it feels similar to Twitter/Instagram.
+# - Some ask for missing features like follow-only feed and messaging.
+#
+# Threads Neutral
+# - Comments mention missing features, bugs, and crashes.
+# - Some users say the app is a copy of Twitter.
+# - Mixed opinions without strong emotion.
+#
+# Threads Negative
+# - Complaints about crashes, bugs, and feed problems.
+# - Users feel the app is unstable or hard to use.
+# -Some are unhappy about links to Instagram accounts.
+# --------------------------------------------------------------------
+#
+# --------------------------------------------------------------------
+# BERTopic Twitter analysis
+# --------------------------------------------------------------------
+twitter_pos_model, twitter_pos_topics, twitter_pos_probs, twitter_pos_emb, twitter_pos_coh = \
+    run_bertopic_pipeline(twitter_pos, sentiment_value="positive", review_col= "review_text")
+
+twitter_neu_model, twitter_neu_topics, twitter_neu_probs, twitter_neu_emb, twitter_neu_coh = \
+    run_bertopic_pipeline(twitter_neu, sentiment_value="neutral", review_col = "review_text")
+
+twitter_neg_model, twitter_neg_topics, twitter_neg_probs, twitter_neg_emb, twitter_neg_coh = \
+    run_bertopic_pipeline(twitter_neg, sentiment_value="negative",review_col="review_text")
+'''
+# For grouped plot
+plot_bertopic_topics_grouped(twitter_pos_model, "Twitter Positive")
+plot_bertopic_topics_grouped(twitter_neu_model, "Twitter Neutral")
+plot_bertopic_topics_grouped(twitter_neg_model, "Twitter Negative")
+'''
+# --------------------------------------------------------------------
+# Observations from Twitter:
+# Twitter Positive
+# - Users praise the app and say it is fun or useful.
+# - Some support recent changes and mention free speech.
+# - A few reviews talk about account help or recovery.
+#
+# Twitter Neutral
+# - Comments about the name change to “X.”
+# - Mentions of policy changes like rate limits or paid features.
+# - General observations, not strongly positive or negative.
+#
+# Twitter Negative
+# - Complaints about rate limits and new restrictions.
+# - Users dislike some updates and the rebranding.
+# - Short negative reactions like “bad,” “dumpster fire,” etc.
+# --------------------------------------------------------------------
+#===== Code by Haeyeon Part 5 end ===== #
+
