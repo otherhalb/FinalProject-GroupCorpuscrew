@@ -389,7 +389,7 @@ print(dups_raw_idx.head(10))
 
 
 # ------------------------------------------------------------
-# 2. LONG-REVIEW DUPLICATE REMOVAL
+# Part 2. LONG-REVIEW DUPLICATE REMOVAL
 # ------------------------------------------------------------
 
 def is_long_review(text, min_words=15):
@@ -438,7 +438,7 @@ print(df.shape)
 
 
 # ------------------------------------------------------------
-# 3. BRAND NORMALIZATION MAP
+# Part 3. BRAND NORMALIZATION MAP
 # ------------------------------------------------------------
 
 brand_map = {
@@ -478,7 +478,7 @@ def normalize_brands(text):
 
 
 # ------------------------------------------------------------
-# 4. CLEANING PIPELINE (COMBINED)
+# Part 4. CLEANING PIPELINE (COMBINED)
 # ------------------------------------------------------------
 
 stop_words = set(stopwords.words("english"))
@@ -523,7 +523,7 @@ for i in range(5):
 
 
 # ------------------------------------------------------------
-# 5. REMOVE EMPTY CLEANED ROWS
+# Part 5. REMOVE EMPTY CLEANED ROWS
 # ------------------------------------------------------------
 
 before = df.shape[0]
@@ -643,9 +643,10 @@ for word, freq in freq_dist.most_common(20):
 # - Much more complaining, negativity
 # -----------------------------------------------------
 
-# ------------------------------------------------------
-## SENTIMENT ANALYSIS : USING VADER + KNN FOR THREADS
-# ------------------------------------------------------
+
+# =============================================================
+# 3-1. SENTIMENT ANALYSIS : USING VADER + KNN FOR THREADS
+# =============================================================
 # By applying KMeans clustering to the compound sentiment scores, we could segment reviews into three clusters. The centroids of these clusters inform the thresholds for classifying sentiment, allowing for more objective labeling than manual cutoff values.
 
 # ----------- LOAD DATA --------------
@@ -861,7 +862,7 @@ axes[1].set_ylabel('True', fontsize=12)
 plt.tight_layout()
 plt.show()
 
-
+# ------------------------------------------------------------
 # Overall Summary:
 # We validated VADER sentiment predictions using 3,047 manually labeled Threads reviews.
 # VADER’s overall accuracy was 54.45%, with macro F1 of 0.53, indicating modest performance.
@@ -871,9 +872,10 @@ plt.show()
 # To evaluate the reliability of VADER sentiment classification for our Threads dataset, we manually labelled a validation set of 3,047 comments. VADER achieved an accuracy of 54.45% and a macro F1-score of 0.53, indicating moderate but limited performance as a lexicon-based, unsupervised baseline. This is expected because Threads comments contain slang and conversational tone that are difficult for rule-based models to interpret.
 # VADER performed well for positive sentiment, achieving a high recall of 92.73% and an F1-score of 0.66, suggesting that it reliably recognises positive language on Threads. However, the model showed substantial challenges with neutral and negative sentiment. Negative comments were identified with reasonable precision (54.02%) but low recall (39.51%), meaning many negative posts were incorrectly classified as neutral or positive. Neutral sentiment was particularly difficult (F1: 0.48), which aligns with known limitations of lexicon-based approaches when dealing with ambiguous, informal, or context-heavy text. Human labelling may also include subjectivity, contributing to inconsistencies in this category.
 # Overall, VADER provides a useful initial baseline for sentiment labeling on Threads data, but its limitations—especially around neutral and negative sentiment.
+# ------------------------------------------------------------
 
 # ------------------------------------------------------------
-# Sentiment Classification using TF IDF + Logistic Regression (Threads)
+# Model 1: Sentiment Classification using TF IDF + Logistic Regression (Threads)
 # ------------------------------------------------------------
 # Use the full dataset with VADER+KMeans sentiment
 df_vader = df_threads.copy()
@@ -915,6 +917,7 @@ print("Accuracy:", accuracy_score(y_test, y_pred))
 print("\nClassification Report:")
 print(classification_report(y_test, y_pred, digits=4))
 
+# ------------------------------------------------------------
 # Summary of Results:
 # We trained a TF-IDF + Logistic Regression classifier on the Threads dataset using VADER-generated sentiment labels.
 # The model achieved an accuracy of 74.43% with a macro F1-score of 0.70.
@@ -926,15 +929,86 @@ print(classification_report(y_test, y_pred, digits=4))
 # - Negative sentiment remained the most challenging (F1 = 0.55).
 
 # Overall, these results show that a traditional machine-learning model like TF-IDF + Logistic Regression can still provide strong performance for social media sentiment classification. Despite being trained on weak (auto-generated) labels, the model captures meaningful textual patterns and offers more stable, consistent predictions than lexicon-based approaches such as VADER.
+# ------------------------------------------------------------
+
 
 # ------------------------------------------------------------
-#
-#
-################# HAEYEON PLEASE ADD UR DISTILBERT FOR THREADS HERE ###############
-#
+# Model 2: Sentiment Classification using DistilBERT (Threads)
+# ------------------------------------------------------------
+# Encode Labels
+label_encoder = LabelEncoder()
+y_train_bert = label_encoder.fit_transform(train_df_threads["sentiment"])
+y_test_bert = label_encoder.transform(test_df_threads["sentiment"])
+
+# Tokenize Text for BERT
+tokenizer = DistilBertTokenizerFast.from_pretrained("distilbert-base-uncased")
+
+train_enc = tokenizer(
+    train_df_threads["review_description"].tolist(), 
+    # used raw data, not cleaned one
+    truncation=True,
+    padding=True,
+    max_length=128
+)
+
+test_enc = tokenizer(
+    test_df_threads["review_description"].tolist(),
+    truncation=True,
+    padding=True,
+    max_length=128
+)
+
+# Build Dataset Objects
+class BERTDataset(torch.utils.data.Dataset):
+    def __init__(self, encodings, labels):
+        self.encodings = encodings
+        self.labels = labels
+
+    def __getitem__(self, idx):
+        item = {k: torch.tensor(v[idx], dtype=torch.long) for k,v in self.encodings.items()}
+        item['labels'] = torch.tensor(self.labels[idx], dtype=torch.long)
+        return item
+
+    def __len__(self):
+        return len(self.labels)
+
+train_dataset = BERTDataset(train_enc, y_train_bert)
+test_dataset = BERTDataset(test_enc, y_test_bert)
+
+# Load DistilBERT Model+ Define TrainingArguments + Trainer
+model = DistilBertForSequenceClassification.from_pretrained(
+    "distilbert-base-uncased",
+    num_labels=3
+)
+
+# ------------------------------------------------------------
+# Hyperparameter before tuning
+# ------------------------------------------------------------
+# training_args = TrainingArguments(
+#      output_dir="./bert_results",
+#      eval_strategy="epoch", #  evaluation_strategy="epoch",
+#      save_strategy="epoch",
+#      num_train_epochs=3,
+#      learning_rate=2e-5,
+#      per_device_train_batch_size=16,
+#      per_device_eval_batch_size=16,
+#      weight_decay=0.01,
+#      seed=SEED
+#  )
+
+# ------------------------------------------------------------
+# [Summary-Before tuning]
+# The model achieved 84.43% accuracy and a macro F1-score of 0.81, outperforming the TF-IDF + Logistic Regression baseline (macro F1 ≈0.70).
+# Performance gains were especially strong for negative and neutral categories—classes that rule-based approaches typically struggle with:
+# - Negative: F1 = 0.73
+# - Neutral: F1 = 0.77
+# - Positive: F1 = 0.93
+# ------------------------------------------------------------
+
 # ------------------------------------------------------------
 # HYPERPARAMETER TUNING CODE FOR BERT
 # ------------------------------------------------------------
+# ----------- HYPERPARAMETER TUNING START --------------
 # import optuna
 # import numpy as np
 # from transformers import DistilBertForSequenceClassification, TrainingArguments, Trainer
@@ -1039,9 +1113,66 @@ print(classification_report(y_test, y_pred, digits=4))
 # study.optimize(objective, n_trials=20)
 
 # print("Best hyperparameters:", study.best_params)
+# ----------- HYPERPARAMETER TUNING END --------------
+
+
+# We used HuggingFace optuna to check loss for various paramaters and found the best parameters which we applied below
 # ------------------------------------------------------------
-## SENTIMENT ANALYSIS : USING VADER + KNN FOR TWITTER
+# HYPERPARAMETER TUNING Applied
 # ------------------------------------------------------------
+training_args = TrainingArguments(
+    output_dir="./bert_results",
+    eval_strategy="epoch",       # keep evaluating at end of each epoch
+    save_strategy="epoch",       # save checkpoint at each epoch
+    num_train_epochs=4,          # from Optuna
+    learning_rate=3.6744e-5,     # from Optuna
+    per_device_train_batch_size=32,  # from Optuna
+    per_device_eval_batch_size=32,   
+    weight_decay=0.2990,         # from Optuna
+    warmup_steps=371,            # from Optuna
+    seed=SEED,
+    load_best_model_at_end=True,
+    logging_steps = 50,
+)
+
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=test_dataset
+)
+
+# Train and Evaluation
+trainer.train()
+
+preds = trainer.predict(test_dataset)
+y_pred_bert = np.argmax(preds.predictions, axis=1)
+
+print("Threads BERT Accuracy:", accuracy_score(y_test_bert, y_pred_bert))
+print(classification_report(
+    y_test_bert,
+    y_pred_bert,
+    target_names=label_encoder.classes_,
+    digits=4
+))
+
+# ------------------------------------------------------------
+#[Summary - after hyperparameter tuning]
+# Fine-tuning DistilBERT on the Threads dataset significantly improved sentiment classification performance.
+# The model achieved 86.23% accuracy and a macro F1-score of 0.81, outperforming  and the TF-IDF + Logistic Regression baseline (macro F1 ≈0.70).
+# Performance gains were especially strong for negative and neutral categories—classes that rule-based approaches typically struggle with:
+# - Negative: F1 = 0.74
+# - Neutral: F1 = 0.79
+# - Positive: F1 = 0.93
+#
+# These results demonstrate that pretrained transformer models can effectively capture nuanced linguistic cues even when trained on noisy, weakly labeled data.
+#Overall, DistilBERT provides a much more robust and reliable method for real-world social media sentiment analysis compared to lexicon-based or classical machine-learning baselines.
+# ------------------------------------------------------------
+
+
+# =============================================================
+# 3-2. SENTIMENT ANALYSIS : USING VADER + KNN FOR TWITTER
+# =============================================================
 
 # By applying KMeans clustering to the compound sentiment scores, we could segment reviews into three clusters. 
 # The centroids of these clusters inform the thresholds for classifying sentiment, allowing for more objective labeling
@@ -1111,7 +1242,7 @@ plt.legend(title="Sentiment")
 plt.show()
 
 # --------------------------------------------------------------------
-# ----------- WORDCLOUDS + TOP WORDS PER SENTIMENT CLUSTER FOR THREADS -----------
+# ----------- WORDCLOUDS + TOP WORDS PER SENTIMENT CLUSTER FOR TWITTER -----------
 # --------------------------------------------------------------------
 
 
@@ -1143,6 +1274,7 @@ for i, sentiment in enumerate(sentiments, 1):
 plt.tight_layout()
 plt.show()
 
+# ------------------------------------------------------------
 # Summary:
 # The negative word cloud shows frustration with Elon/Musk, worsening updates, and strong complaints about 
 # the platform becoming “bad,” “worse,” and “ruined.”
@@ -1150,7 +1282,7 @@ plt.show()
 # satisfaction through words like good, great, best, and love.
 # The neutral word cloud reflects general discussion around Elon/Musk, tweets, changes, and platform updates
 # without strong emotional tone.
-
+# ------------------------------------------------------------
 
 # --------------------------------------------------------------------
 # ----------- TRAIN-TEST SPLIT FOR TWITTER -----------
@@ -1277,6 +1409,7 @@ axes[1].set_xlabel('VADER Predicted', fontsize=11)
 plt.tight_layout()
 plt.show()
 
+# ------------------------------------------------------------
 #Summary:  To evaluate the reliability of VADER sentiment classification for our Twitter dataset, 
 # we manually labelled a subset of around 3k reviews as a validation set. VADER achieved an overall accuracy of 60.85% 
 # with a macro F1-score of 0.54, showing reasonable performance as an unsupervised, lexicon-based baseline for social 
@@ -1289,6 +1422,8 @@ plt.show()
 #  making it ambiguous for humans as well
 
 #These results validate VADER as a suitable tool for initial sentiment labeling and could be used for sentiment classification. 
+# ------------------------------------------------------------
+
 # ------------------------------------------------------------
 # Sentiment Classification using TF IDF + Logistic Regression (Twitter)
 # ------------------------------------------------------------
@@ -1328,6 +1463,7 @@ print("Accuracy:", accuracy_score(y_test_t, y_pred_t))
 print("\nClassification Report:")
 print(classification_report(y_test_t, y_pred_t, digits=4))
 
+# ------------------------------------------------------------
 # We trained a TF-IDF + Logistic Regression classifier on the Twitter dataset using VADER-assigned sentiment labels.
 #  The model achieved 83.61% accuracy with a macro F1-score of 0.84, indicating strong overall performance and a clear 
 # improvement over VADER’s direct predictions.
@@ -1342,3 +1478,281 @@ print(classification_report(y_test_t, y_pred_t, digits=4))
 # Overall, these results demonstrate that TF-IDF + Logistic Regression is a highly competitive baseline for large-scale social
 #  media sentiment analysis. Despite relying on weak, auto-generated labels, the model successfully captures meaningful linguistic
 #  patterns in real-world Twitter text and significantly outperforms rule-based tools like VADER across all sentiment categories.
+# ------------------------------------------------------------
+
+# ------------------------------------------------------------
+# Model 2: Sentiment Classification using DistilBERT (Twitter)
+# ------------------------------------------------------------
+# Encode sentiment labels for Twitter dataset
+label_encoder_tw = LabelEncoder()
+
+y_train_bert_tw = label_encoder_tw.fit_transform(train_df_twitter["sentiment"])
+y_test_bert_tw  = label_encoder_tw.transform(test_df_twitter["sentiment"])
+
+# Tokenize Text for BERT
+# Convert to str
+train_df_twitter["review_text"] = train_df_twitter["review_text"].astype(str)
+test_df_twitter["review_text"]  = test_df_twitter["review_text"].astype(str)
+
+# Remove broken variables
+train_df_twitter = train_df_twitter[train_df_twitter["review_text"].notna()].copy()
+test_df_twitter  = test_df_twitter[test_df_twitter["review_text"].notna()].copy()
+
+tokenizer_tw = DistilBertTokenizerFast.from_pretrained("distilbert-base-uncased")
+
+train_enc_tw = tokenizer_tw(
+    train_df_twitter["review_text"].tolist(),    # raw text, no cleaning needed
+    truncation=True,
+    padding=True,
+    max_length=128
+)
+
+test_enc_tw = tokenizer_tw(
+    test_df_twitter["review_text"].tolist(),
+    truncation=True,
+    padding=True,
+    max_length=128
+)
+
+# Build Dataset Objects, use previous class BERTDataset
+
+train_dataset_tw = BERTDataset(train_enc_tw, y_train_bert_tw)
+test_dataset_tw  = BERTDataset(test_enc_tw,  y_test_bert_tw)
+
+# Load DistilBERT Model+ Define TrainingArguments + Trainer
+model_tw = DistilBertForSequenceClassification.from_pretrained(
+    "distilbert-base-uncased",
+    num_labels=3
+)
+
+training_args_tw = TrainingArguments(
+    output_dir="./bert_results_twitter",
+    eval_strategy="epoch", # evaluation_strategy="epoch",
+    save_strategy="epoch",
+    num_train_epochs=3,
+    learning_rate=2e-5,
+    per_device_train_batch_size=16,
+    per_device_eval_batch_size=16,
+    weight_decay=0.01,
+    seed=SEED
+)
+
+trainer_tw = Trainer(
+    model=model_tw,
+    args=training_args_tw,
+    train_dataset=train_dataset_tw,
+    eval_dataset=test_dataset_tw
+)
+
+# Train and Evaluation
+trainer_tw.train()
+
+preds_tw = trainer_tw.predict(test_dataset_tw)
+y_pred_bert_tw = np.argmax(preds_tw.predictions, axis=1)
+
+print("Twitter BERT Accuracy:", accuracy_score(y_test_bert_tw, y_pred_bert_tw))
+
+print(classification_report(
+    y_test_bert_tw,
+    y_pred_bert_tw,
+    target_names=label_encoder_tw.classes_,
+    digits=4
+))
+
+# ------------------------------------------------------------
+#[Summary]
+# Fine-tuning DistilBERT on the Twitter dataset led to a substantial improvement in sentiment classification performance.
+# The model achieved 93.06%(Previously 92.74%) accuracy and a macro F1-score of 0.93,surpassing the TF-IDF + Logistic Regression baseline (macro F1 ≈0.84).
+# Performance was consistently strong across all three sentiment classes:
+# - Negative: F1 = 0.93
+# - Neutral: F1 = 0.90
+# - Positive: F1 = 0.96
+# 
+# These results show that DistilBERT captures the linguistic nuances of Twitter text extremely well, even when trained on weakly labeled sentiment data. Compared to traditional machine-learning models and lexicon-based methods, the transformer model demonstrates far more robust generalization, stronger class balance, and improved handling of subtle or ambiguous sentiment expressions.
+# Overall, DistilBERT provides a highly reliable and accurate approach for large-scale Twitter sentiment analysis.
+# ------------------------------------------------------------
+
+# --------------------------------------------------------------------
+# --------- DATA CLEANING PIPELINE 2: TOPIC MODELLING PREPARATION -----------
+# --------------------------------------------------------------------
+negations = {"no", "not", "nor", "dont", "can't", "cannot", "never"}
+stop_words = stop_words - negations
+
+# App-specific words to remove
+custom_stopwords_tm = set([
+    "app", "apps", "application", "applications",
+    "experience", "account", 
+])
+
+# ============================
+#  Cleaning Function
+# ============================
+def clean_text_for_tm(text):
+    tokens = simple_preprocess(text, deacc=True)
+    return tokens
+
+# ============================
+#  Bigram Builder
+# ============================
+def create_bigrams(texts):
+    bigram = Phrases(texts, min_count=10, threshold=10)
+    bigram_mod = Phraser(bigram)
+    return [bigram_mod[doc] for doc in texts]
+
+# ============================
+# Prepare Dataset for Topic Modeling
+# ============================
+def prepare_tm_texts(df):
+    docs = df["review_cleaned"].apply(clean_text_for_tm).tolist()
+    docs_bigrams = create_bigrams(docs)
+    return docs_bigrams
+
+# ------- TOPIC MODELLING 1: LDA -----------
+def train_lda_model(docs_bigrams, num_topics=5):
+
+    dictionary = Dictionary(docs_bigrams)
+    dictionary.filter_extremes(no_below=10, no_above=0.5)
+
+    corpus = [dictionary.doc2bow(doc) for doc in docs_bigrams]
+
+    lda_model = LdaModel(
+        corpus=corpus,
+        id2word=dictionary,
+        num_topics=num_topics,
+        random_state=42,
+        chunksize=2000,
+        passes=10,
+        alpha='auto'
+    )
+
+    coherence_model = CoherenceModel(
+        model=lda_model,
+        texts=docs_bigrams,
+        dictionary=dictionary,
+        coherence='c_v'
+    )
+
+    coherence_score = coherence_model.get_coherence()
+
+    return lda_model, corpus, dictionary, coherence_score
+
+
+
+def run_lda(docs_df):
+    docs_bigrams = prepare_tm_texts(docs_df)
+
+    topic_range = range(3, 7)
+    coherence_scores = {}
+
+    for k in topic_range:
+        lda_model, corpus, dictionary, coherence = train_lda_model(docs_bigrams, num_topics=k)
+        coherence_scores[k] = coherence
+        print(f"k={k} Coherence={coherence:.4f}")
+
+    best_k = max(coherence_scores, key=coherence_scores.get)
+    print("\nBest number of topics =", best_k)
+
+    final_lda, corpus, dictionary, coherence = train_lda_model(docs_bigrams, num_topics=best_k)
+
+    print("Final Coherence Score:", coherence)
+
+    topics = final_lda.show_topics(num_topics=-1, num_words=15, formatted=False)
+
+    for topic_id, words in topics:
+        print(f"TOPIC {topic_id+1}:")
+        top_terms = [w for w, weight in words]
+        print(", ".join(top_terms))
+        print()
+
+    return final_lda    # 
+
+
+print("\n===== POSITIVE TOPICS =====")
+def run_lda_block(df_input):
+    print("\n===== RUNNING LDA BLOCK =====")
+    return run_lda(df_input)
+
+
+# Visualization function for LDA topics
+import matplotlib.pyplot as plt
+import math
+
+# ---------------------------------------------------------
+# 4×4 Grid Visualization for One Sentiment
+# ---------------------------------------------------------
+def visualize_lda_grid(lda_model, sentiment_label, num_words=10):
+
+    topics = lda_model.show_topics(num_topics=-1, num_words=num_words, formatted=False)
+    num_topics = len(topics)
+
+    print(f"\n--- VISUALIZING {num_topics} TOPICS FOR {sentiment_label.upper()} ---")
+
+    # Grid size (max 4x4)
+    rows = 4
+    cols = 4
+    total_plots = rows * cols
+
+    fig, axes = plt.subplots(rows, cols, figsize=(18, 18))
+    axes = axes.flatten()
+
+    for i, ax in enumerate(axes):
+
+        if i < num_topics:
+            topic_id, topic_data = topics[i]
+            words = [w for w, wt in topic_data]
+            weights = [wt for w, wt in topic_data]
+
+            ax.barh(words[::-1], weights[::-1])
+            ax.set_title(f"Topic {topic_id+1}")
+            ax.tick_params(labelsize=9)
+        else:
+            ax.axis("off")   # hide empty grid cells
+
+    plt.suptitle(f"{sentiment_label.upper()} — LDA Topics", fontsize=20)
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+    plt.show()
+
+# Wrapper for convenience
+def visualize_lda_block(lda_model, sentiment_label):
+    visualize_lda_grid(lda_model, sentiment_label)
+
+
+# ---------------------------------------------------------
+# --------- THREADS LDA TOPIC MODELING ---------
+# ---------------------------------------------------------
+print("\n===== THREADS POSITIVE TOPICS =====")
+lda_pos_threads = run_lda_block(threads_pos)
+print("\n===== THREADS NEUTRAL TOPICS =====")
+lda_neu_threads = run_lda_block(threads_neu)
+print("\n===== THREADS NEGATIVE TOPICS =====")
+lda_neg_threads = run_lda_block(threads_neg)
+
+visualize_lda_block(lda_pos_threads, "Threads Positive")
+visualize_lda_block(lda_neu_threads, "Threads Neutral")
+visualize_lda_block(lda_neg_threads, "Threads Negative")
+
+# Sumarry of Findings for Threads LDA
+# - Positive reviews: Users express generally positive impressions and note that the app works well, while also offering polite suggestions for additional features.
+# - Neutral reviews: Comments focus on platform comparisons, technical observations, and practical usage notes without strong emotional tone.
+# - Negative reviews: Users report dissatisfaction related to crashes, missing features, feed issues, and comparisons where Threads feels weaker than alternatives.
+
+# ---------------------------------------------------------
+# --------- TWITTER LDA TOPIC MODELING ---------
+# ---------------------------------------------------------
+print("\n===== TWITTER POSITIVE TOPICS =====")
+lda_pos_twitter = run_lda_block(twitter_pos)
+
+print("\n===== TWITTER NEUTRAL TOPICS =====")
+lda_neu_twitter = run_lda_block(twitter_neu)
+
+print("\n===== TWITTER NEGATIVE TOPICS =====")
+lda_neg_twitter = run_lda_block(twitter_neg)
+
+visualize_lda_block(lda_pos_twitter, "Twitter Positive")
+visualize_lda_block(lda_neu_twitter, "Twitter Neutral")
+visualize_lda_block(lda_neg_twitter, "Twitter Negative")
+
+# Summary of Findings for Twitter LDA
+# - Positive reviews: Users express favorable impressions, highlight improvements, and appreciate specific features or platform behavior.
+# - Neutral reviews: Comments focus on platform changes, updates, and general functionality, often mentioning rebranding or feature adjustments without strong emotion.
+# - Negative reviews: Users express dissatisfaction with updates, rebranding decisions, and limits, frequently criticizing how recent changes have affected the platform experience.
