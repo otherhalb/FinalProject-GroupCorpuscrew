@@ -648,7 +648,7 @@ for word, freq in freq_dist.most_common(20):
 # -----------------------------------------------------
 # ===== Code by Haeyeon Part 1 end ===== #
 
-# ===== Code by ????? Part 1 start ===== #
+# ===== Code by Snehitha Tadapaneni Part 1 start ===== #
 # =============================================================
 # 3-1. SENTIMENT ANALYSIS : USING VADER + KNN FOR THREADS
 # =============================================================
@@ -657,7 +657,6 @@ for word, freq in freq_dist.most_common(20):
 # ----------- LOAD DATA --------------
 df_threads = threads_clean.copy()     
 # ------------------------------------
-
 
 # ---------- VADER SCORES -----------
 analyzer = SentimentIntensityAnalyzer()
@@ -935,7 +934,7 @@ print(classification_report(y_test, y_pred, digits=4))
 
 # Overall, these results show that a traditional machine-learning model like TF-IDF + Logistic Regression can still provide strong performance for social media sentiment classification. Despite being trained on weak (auto-generated) labels, the model captures meaningful textual patterns and offers more stable, consistent predictions than lexicon-based approaches such as VADER.
 # ------------------------------------------------------------
-# ===== Code by Snehitha Part ? end ===== #
+# ===== Code by Snehitha Tadapaneni Part 1 end ===== #
 
 # ===== Code by Haeyeon Part 2 start ===== #
 # ------------------------------------------------------------
@@ -1490,7 +1489,7 @@ print(classification_report(y_test_t, y_pred_t, digits=4))
 #  media sentiment analysis. Despite relying on weak, auto-generated labels, the model successfully captures meaningful linguistic
 #  patterns in real-world Twitter text and significantly outperforms rule-based tools like VADER across all sentiment categories.
 # ------------------------------------------------------------
-# ===== Code by Snehitha Part ? end ===== #
+# ===== Code by ???? Part ? end ===== #
 
 # ===== Code by Haeyeon Part 4 start ===== #
 # ------------------------------------------------------------
@@ -1591,7 +1590,7 @@ print(classification_report(
 # ------------------------------------------------------------
 # ===== Code by Haeyeon Part 4 end ===== #
 
-# ===== Code by ??? Part ? start ===== #
+# ===== Code by Snehitha Tadapaneni Part 2 start ===== #
 # --------------------------------------------------------------------
 # --------- DATA CLEANING PIPELINE 2: TOPIC MODELLING PREPARATION -----------
 # --------------------------------------------------------------------
@@ -1777,7 +1776,7 @@ visualize_lda_block(lda_neg_twitter, "Twitter Negative")
 # - Neutral reviews: Comments focus on platform changes, updates, and general functionality, often mentioning rebranding or feature adjustments without strong emotion.
 # - Negative reviews: Users express dissatisfaction with updates, rebranding decisions, and limits, frequently criticizing how recent changes have affected the platform experience.
 
-
+# ===== Code by Snehitha Tadapaneni Part 2 end ===== #
 
 # --------------------------------------------------------------------
 # --------- TOPIC MODELLING PREPARATION - NMF -----------
