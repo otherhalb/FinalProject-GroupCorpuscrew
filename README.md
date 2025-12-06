@@ -13,13 +13,14 @@ All code is contained in a single script/notebook and should be executed **top t
 ## 1. Project Structure
 
 project_root/
-│
-├─ Data/
-│ ├─ threads_reviews_labelled.csv
-│ └─ twitter_reviews_labelled.csv
-│
-├─ comparative_analysis_threads_twitter.py
-└─ README.md
+- Data/
+  - threads_reviews_labelled.csv
+  - twitter_reviews_labelled.csv
+
+- comparative_analysis_threads_twitter.py
+- README.md
+
+
 
 
 ---
