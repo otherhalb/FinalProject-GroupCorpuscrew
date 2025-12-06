@@ -1,2 +1,0 @@
-# FinalProject-GroupCorpuscrew
-for citation
