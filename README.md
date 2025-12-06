@@ -9,7 +9,7 @@ and topic modeling (LDA, NMF, BERTopic).
 All code is contained in a single script/notebook and should be executed **top to bottom**.
 
 ---
-## 0. Github Structure
+## 1. Github Structure
 
 [Code](https://github.com/otherhalb/FinalProject-GroupCorpuscrew/tree/main/Code)
 
@@ -24,28 +24,6 @@ All code is contained in a single script/notebook and should be executed **top t
 [snehitha-tadapaneni-individual-project](https://github.com/otherhalb/FinalProject-GroupCorpuscrew/tree/main/snehitha-tadapaneni-individual-project)
 
 
-
-
-## 1. Project Structure
-
-FinalProject-GroupCorpuscrew/
-│
-├── Code/
-│   ├── comparative_analysis_threads_twitter.py
-│   ├── (any additional helper scripts if you add them)
-│   └── README.md     ← Explains code order + script descriptions
-│
-├── Data/
-│   ├── threads_reviews_labelled.csv
-│   └── twitter_reviews_labelled.csv
-│
-├── Presentation/
-│   └── Final_Presentation.pdf    (or .pptx)
-│
-├── Report/
-│   └── Final_Report.pdf
-│
-└── README.md  
 
 ---
 
