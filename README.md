@@ -9,6 +9,22 @@ and topic modeling (LDA, NMF, BERTopic).
 All code is contained in a single script/notebook and should be executed **top to bottom**.
 
 ---
+## 0. Github Structure
+
+[Code](https://github.com/otherhalb/FinalProject-GroupCorpuscrew/tree/main/Code)
+
+[Final-Group-Presentation](https://github.com/otherhalb/FinalProject-GroupCorpuscrew/tree/main/Final-Group-Presentation)
+
+[Final-Group-Project-Report](https://github.com/otherhalb/FinalProject-GroupCorpuscrew/tree/main/Final-Group-Project-Report)
+
+[haeyeon-jeong-individual-project](https://github.com/otherhalb/FinalProject-GroupCorpuscrew/tree/main/haeyeon-jeong-individual-project)
+
+[sai rachana-kandikattu-individual-project](https://github.com/otherhalb/FinalProject-GroupCorpuscrew/tree/main/sai%20rachana-kandikattu-individual-project)
+
+[snehitha-tadapaneni-individual-project](https://github.com/otherhalb/FinalProject-GroupCorpuscrew/tree/main/snehitha-tadapaneni-individual-project)
+
+
+
 
 ## 1. Project Structure
 
