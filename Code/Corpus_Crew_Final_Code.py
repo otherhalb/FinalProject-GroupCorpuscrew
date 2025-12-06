@@ -1011,7 +1011,7 @@ model = DistilBertForSequenceClassification.from_pretrained(
 # ------------------------------------------------------------
 # ===== Code by Haeyeon Part 2 end ===== #
 
-# ===== Code by Rachana Part ? start ===== #
+# ===== Code by Rachana Part 1 start ===== #
 # ------------------------------------------------------------
 # HYPERPARAMETER TUNING CODE FOR BERT
 # ------------------------------------------------------------
@@ -1123,6 +1123,7 @@ model = DistilBertForSequenceClassification.from_pretrained(
 # ----------- HYPERPARAMETER TUNING END --------------
 
 
+
 # We used HuggingFace optuna to check loss for various paramaters and found the best parameters which we applied below
 # ------------------------------------------------------------
 # HYPERPARAMETER TUNING Applied
@@ -1141,7 +1142,7 @@ training_args = TrainingArguments(
     load_best_model_at_end=True,
     logging_steps = 50,
 )
-# ===== Code by Rachana Part ? end ===== #
+# ===== Code by Rachana Part 1 end ===== #
 
 # ===== Code by Haeyeon Part 3 start ===== #
 trainer = Trainer(
@@ -1179,7 +1180,7 @@ print(classification_report(
 # ------------------------------------------------------------
 # ===== Code by Haeyeon Part 3 end ===== #
 
-# ===== Code by ??? Part ? start ===== #
+# ===== Code by Rachana Part 2 start ===== #
 # =============================================================
 # 3-2. SENTIMENT ANALYSIS : USING VADER + KNN FOR TWITTER
 # =============================================================
@@ -1489,7 +1490,7 @@ print(classification_report(y_test_t, y_pred_t, digits=4))
 #  media sentiment analysis. Despite relying on weak, auto-generated labels, the model successfully captures meaningful linguistic
 #  patterns in real-world Twitter text and significantly outperforms rule-based tools like VADER across all sentiment categories.
 # ------------------------------------------------------------
-# ===== Code by ???? Part ? end ===== #
+# ===== Code by Rachana Part 2 end ===== #
 
 # ===== Code by Haeyeon Part 4 start ===== #
 # ------------------------------------------------------------
@@ -1778,6 +1779,8 @@ visualize_lda_block(lda_neg_twitter, "Twitter Negative")
 
 # ===== Code by Snehitha Tadapaneni Part 2 end ===== #
 
+# ===== Code by Rachana Part 3 start ===== #
+
 # --------------------------------------------------------------------
 # --------- TOPIC MODELLING PREPARATION - NMF -----------
 # --------------------------------------------------------------------
@@ -1860,7 +1863,7 @@ def run_nmf_block(df_input):
 #Visulaizing the Topics in pos, neu, neg (NMF)
 
 # --------------------------------------------------------------------
-# VISUALIZATION - LDA
+# VISUALIZATION - NMF
 # --------------------------------------------------------------------
 
 
@@ -1978,7 +1981,7 @@ visualize_nmf_block(nmf_neg_tw, neg_feats_tw, "Twitter Negative")
 # it is significantly low than LDA and the insights found in LDA seem to be much better than NMF. 
 # Hence, LDA is the best choice for now.
 
-# ===== Code by ??? Part ? end ===== #
+# ===== Code by Rachana Part 3 end ===== #
 
 # ===== Code by Haeyeon Part 5 start ===== #
 # --------------------------------------------------------------------
